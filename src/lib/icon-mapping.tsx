@@ -1,9 +1,9 @@
 import { IconType } from 'react-icons';
-import { 
-    SiJavascript, SiReact, SiTypescript, SiHtml5, SiCss3, SiSass, SiLess, SiJson, 
-    SiXml, SiYaml, SiPython, SiC, SiCplusplus, SiSharp, SiGo, SiRust, 
-    SiPhp, SiRuby, SiPerl, SiGnubash, SiSwift, SiKotlin, 
-    SiGit, SiDart, SiVuedotjs, SiSvelte, SiAstro, 
+import {
+    SiJavascript, SiReact, SiTypescript, SiHtml5, SiCss3, SiSass, SiLess, SiJson,
+    SiXml, SiYaml, SiPython, SiC, SiCplusplus, SiSharp, SiGo, SiRust,
+    SiPhp, SiRuby, SiPerl, SiGnubash, SiSwift, SiKotlin,
+    SiGit, SiDart, SiVuedotjs, SiSvelte, SiAstro,
     SiSolidity, SiLua, SiPrisma, SiGradle, SiOpengl, SiMarkdown, SiDocker, SiGithub,
     SiElixir, SiErlang, SiHaskell, SiScala, SiClojure, SiOcaml,
     SiZig, SiNim, SiCrystal, SiJulia, SiR, SiLatex, SiFortran,
@@ -13,13 +13,13 @@ import {
     SiJenkins, SiCircleci, SiPostgresql, SiMysql
 } from 'react-icons/si';
 import { FaJava, FaWindows, FaDatabase, FaCode } from 'react-icons/fa';
-import { 
-    MdFolder, MdFolderOpen, MdInsertDriveFile, MdSettings, MdCheck, MdCheckBox, 
-    MdCheckBoxOutlineBlank, MdSearch, MdClose, MdAdd, MdDelete, MdContentCopy, 
-    MdChevronRight, MdViewList, MdAccountTree, MdArrowUpward, MdArrowDownward, 
-    MdTune, MdCode, MdExpandMore, MdMenu, MdWarning, MdMinimize, MdNetworkCheck, 
-    MdDownload, MdTimer, MdSpeed, MdUpload, MdCheckCircle, MdLock, MdDescription, 
-    MdGridOn, MdImage, MdTerminal, MdPieChart, MdRefresh
+import {
+    MdFolder, MdFolderOpen, MdInsertDriveFile, MdSettings, MdCheck, MdCheckBox,
+    MdCheckBoxOutlineBlank, MdSearch, MdClose, MdAdd, MdDelete, MdContentCopy,
+    MdChevronRight, MdViewList, MdAccountTree, MdArrowUpward, MdArrowDownward,
+    MdTune, MdCode, MdExpandMore, MdMenu, MdWarning, MdMinimize, MdNetworkCheck,
+    MdDownload, MdTimer, MdSpeed, MdUpload, MdCheckCircle, MdLock, MdDescription,
+    MdGridOn, MdImage, MdTerminal, MdPieChart, MdRefresh, MdFilterList, MdAssignment
 } from 'react-icons/md';
 import { VscRegex } from 'react-icons/vsc';
 import { TbFileTypeSql } from 'react-icons/tb';
@@ -35,7 +35,7 @@ export const EXTENSION_ICON_MAP: Record<string, IconType> = {
     mts: SiTypescript,
     cts: SiTypescript,
     tsx: SiReact,
-    
+
     // Web fundamentals
     html: SiHtml5,
     htm: SiHtml5,
@@ -49,7 +49,7 @@ export const EXTENSION_ICON_MAP: Record<string, IconType> = {
     pcss: SiPostcss,
     postcss: SiPostcss,
     tailwind: SiTailwindcss,
-    
+
     // Data formats
     json: SiJson,
     jsonc: SiJson,
@@ -62,7 +62,7 @@ export const EXTENSION_ICON_MAP: Record<string, IconType> = {
     toml: MdSettings,
     csv: MdGridOn,
     tsv: MdGridOn,
-    
+
     // Python
     py: SiPython,
     pyw: SiPython,
@@ -70,7 +70,7 @@ export const EXTENSION_ICON_MAP: Record<string, IconType> = {
     pxd: SiPython,
     pyi: SiPython,
     ipynb: SiPython,
-    
+
     // Java / JVM
     java: FaJava,
     kt: SiKotlin,
@@ -83,7 +83,7 @@ export const EXTENSION_ICON_MAP: Record<string, IconType> = {
     cljs: SiClojure,
     cljc: SiClojure,
     edn: SiClojure,
-    
+
     // C family
     c: SiC,
     h: SiC,
@@ -95,7 +95,7 @@ export const EXTENSION_ICON_MAP: Record<string, IconType> = {
     hxx: SiCplusplus,
     cs: SiSharp,
     csx: SiSharp,
-    
+
     // Systems programming
     go: SiGo,
     mod: SiGo,
@@ -104,7 +104,7 @@ export const EXTENSION_ICON_MAP: Record<string, IconType> = {
     zig: SiZig,
     nim: SiNim,
     cr: SiCrystal,
-    
+
     // Functional languages
     hs: SiHaskell,
     lhs: SiHaskell,
@@ -119,7 +119,7 @@ export const EXTENSION_ICON_MAP: Record<string, IconType> = {
     heex: SiElixir,
     erl: SiErlang,
     hrl: SiErlang,
-    
+
     // Scientific / Data Science
     r: SiR,
     rmd: SiR,
@@ -130,7 +130,7 @@ export const EXTENSION_ICON_MAP: Record<string, IconType> = {
     f90: SiFortran,
     f95: SiFortran,
     for: SiFortran,
-    
+
     // Web scripting
     php: SiPhp,
     phtml: SiPhp,
@@ -148,7 +148,7 @@ export const EXTENSION_ICON_MAP: Record<string, IconType> = {
     pod: SiPerl,
     t: SiPerl,
     lua: SiLua,
-    
+
     // Shell / Scripts
     sh: SiGnubash,
     bash: SiGnubash,
@@ -162,19 +162,19 @@ export const EXTENSION_ICON_MAP: Record<string, IconType> = {
     ps1: FaWindows,
     psm1: FaWindows,
     psd1: FaWindows,
-    
+
     // Mobile
     swift: SiSwift,
     dart: SiDart,
     arb: SiDart,
     flutter: BiLogoFlutter,
-    
+
     // Frontend frameworks
     vue: SiVuedotjs,
     svelte: SiSvelte,
     astro: SiAstro,
     angular: SiAngular,
-    
+
     // Template engines
     pug: SiPug,
     jade: SiPug,
@@ -186,20 +186,20 @@ export const EXTENSION_ICON_MAP: Record<string, IconType> = {
     nunjucks: MdCode,
     twig: MdCode,
     liquid: MdCode,
-    
+
     // Transpiled languages
     coffee: SiCoffeescript,
     litcoffee: SiCoffeescript,
-    
+
     // WebAssembly
     wasm: SiWebassembly,
     wat: SiWebassembly,
     wast: SiWebassembly,
-    
+
     // Blockchain
     sol: SiSolidity,
     vy: SiPython,
-    
+
     // Database / Query
     sql: TbFileTypeSql,
     mysql: SiMysql,
@@ -208,7 +208,7 @@ export const EXTENSION_ICON_MAP: Record<string, IconType> = {
     prisma: SiPrisma,
     graphql: SiGraphql,
     gql: SiGraphql,
-    
+
     // Config files
     config: MdSettings,
     cfg: MdSettings,
@@ -219,13 +219,13 @@ export const EXTENSION_ICON_MAP: Record<string, IconType> = {
     conf: MdSettings,
     htaccess: MdSettings,
     editorconfig: MdSettings,
-    
+
     // Git
     gitignore: SiGit,
     gitattributes: SiGit,
     gitmodules: SiGit,
     gitkeep: SiGit,
-    
+
     // DevOps / Infrastructure
     dockerfile: SiDocker,
     docker: SiDocker,
@@ -235,11 +235,11 @@ export const EXTENSION_ICON_MAP: Record<string, IconType> = {
     ansible: SiAnsible,
     helm: SiHelm,
     k8s: SiKubernetes,
-    
+
     // CI/CD
     jenkinsfile: SiJenkins,
     circleci: SiCircleci,
-    
+
     // Documentation
     md: SiMarkdown,
     mdx: SiMarkdown,
@@ -250,28 +250,28 @@ export const EXTENSION_ICON_MAP: Record<string, IconType> = {
     txt: MdDescription,
     log: MdDescription,
     license: MdDescription,
-    
+
     // LaTeX
     tex: SiLatex,
     latex: SiLatex,
     bib: SiLatex,
-    
+
     // Graphics / Shaders
     glsl: SiOpengl,
     vert: SiOpengl,
     frag: SiOpengl,
     hlsl: SiOpengl,
     shader: SiOpengl,
-    
+
     // Assembly
     asm: FaCode,
     s: FaCode,
     nasm: FaCode,
-    
+
     // Misc
     lock: MdLock,
     regex: VscRegex,
-    
+
     // Makefile and build
     makefile: MdTerminal,
     mk: MdTerminal,
@@ -318,6 +318,9 @@ export const UI_ICONS_MAP = {
     lock: MdLock,
     chart: MdPieChart,
     refresh: MdRefresh,
+    filter: MdFilterList,
+    template: MdAssignment,
+    chevronDown: MdExpandMore,
 };
 
 export const getIconForExtension = (ext: string): IconType => {

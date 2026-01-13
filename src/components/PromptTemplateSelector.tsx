@@ -23,6 +23,7 @@ type TemplateFormState = {
 };
 
 const CATEGORY_LABELS: Record<PromptTemplate['category'], string> = {
+    wrapper: 'Output Wrappers',
     analysis: 'Analysis',
     refactor: 'Refactoring & Conversion',
     security: 'Security',
@@ -38,6 +39,7 @@ const categoryOrder: PromptTemplate['category'][] = [
     'doc',
     'test',
     'custom',
+    'wrapper',
 ];
 
 const initialForm: TemplateFormState = {
@@ -71,6 +73,7 @@ export const PromptTemplateSelector: React.FC<PromptTemplateSelectorProps> = ({ 
             doc: [],
             test: [],
             custom: [],
+            wrapper: [],
         };
         templates.forEach((tpl) => {
             groups[tpl.category]?.push(tpl);
@@ -159,29 +162,24 @@ export const PromptTemplateSelector: React.FC<PromptTemplateSelectorProps> = ({ 
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setIsOpen(!isOpen)}
                 className={`
-                    flex items-center gap-3 px-4 py-2 rounded-full w-full
-                    min-h-[52px] max-h-[52px]
+                    flex items-center gap-3 px-4 h-10 rounded-full w-full
                     border transition-colors duration-200 overflow-hidden
-                    ${isOpen 
-                        ? 'bg-[var(--theme-surface-hover)] border-[var(--theme-primary)] text-[var(--theme-text-primary)]' 
+                    ${isOpen
+                        ? 'bg-[var(--theme-surface-hover)] border-[var(--theme-primary)] text-[var(--theme-text-primary)]'
                         : 'bg-[var(--theme-surface-elevated)] border-[var(--theme-border)] text-[var(--theme-text-secondary)] hover:bg-[var(--theme-surface-hover)]'
                     }
                 `}
             >
                 <div className="relative w-4.5 h-4.5 flex items-center justify-center shrink-0">
-                    <AnimatedIcon 
-                        icon={UI_ICONS_MAP.code} 
+                    <AnimatedIcon
+                        icon={UI_ICONS_MAP.code}
                         className={`w-full h-full ${isOpen ? 'text-[var(--theme-primary)]' : 'text-[var(--theme-text-secondary)]'}`}
                     />
                 </div>
 
                 <div className="flex-1 min-w-0 text-left leading-tight">
-                    <p className="text-[11px] uppercase tracking-widest text-[var(--theme-text-tertiary)]">Template</p>
-                    <p className="text-sm font-semibold text-[var(--theme-text-primary)] truncate">
+                    <p className="text-sm font-medium text-[var(--theme-text-primary)] truncate">
                         {activeTemplate ? activeTemplate.name : 'None (Raw)'}
-                    </p>
-                    <p className="text-[11px] text-[var(--theme-text-tertiary)] truncate">
-                        {activeTemplate ? activeTemplate.description : 'Copy code without a wrapper'}
                     </p>
                 </div>
 
@@ -228,9 +226,9 @@ export const PromptTemplateSelector: React.FC<PromptTemplateSelectorProps> = ({ 
                                 `}
                             >
                                 {selectedTemplateId === null && (
-                                    <motion.div 
+                                    <motion.div
                                         layoutId="templateActiveIndicator"
-                                        className="w-1 h-8 bg-[var(--theme-primary)] rounded-full" 
+                                        className="w-1 h-8 bg-[var(--theme-primary)] rounded-full"
                                     />
                                 )}
                                 <div className="flex-1 min-w-0">
@@ -269,9 +267,9 @@ export const PromptTemplateSelector: React.FC<PromptTemplateSelectorProps> = ({ 
                                                         `}
                                                     >
                                                         {isActive && (
-                                                            <motion.div 
+                                                            <motion.div
                                                                 layoutId="templateActiveIndicator"
-                                                                className="absolute left-0 top-3 bottom-3 w-1 bg-[var(--theme-primary)] rounded-r-full" 
+                                                                className="absolute left-0 top-3 bottom-3 w-1 bg-[var(--theme-primary)] rounded-r-full"
                                                             />
                                                         )}
                                                         <div className="flex-1 min-w-0 z-10 ml-1">

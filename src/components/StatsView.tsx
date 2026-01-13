@@ -12,7 +12,10 @@ interface StatsViewProps {
         count: number;
         lines: number;
         tokens: number;
+        tokenBudget: number; // Added
+        selectedModelId?: string; // Added
     };
+    onUpdateBudget?: (budget: number, modelId?: string) => void; // Updated
 }
 
 interface LanguageStat {
@@ -23,7 +26,9 @@ interface LanguageStat {
     color: string;
 }
 
-export const StatsView: React.FC<StatsViewProps> = ({ files, stats }) => {
+import { TokenBudgetBar } from '@/components/TokenBudgetBar';
+
+export const StatsView: React.FC<StatsViewProps> = ({ files, stats, onUpdateBudget }) => { // Added onUpdateBudget
     const languageStats = useMemo(() => {
         const counts: Record<string, number> = {};
         let total = 0;
@@ -40,8 +45,13 @@ export const StatsView: React.FC<StatsViewProps> = ({ files, stats }) => {
         const result: LanguageStat[] = Object.entries(counts)
             .map(([ext, count]) => {
                 const config = getLanguageConfig(ext);
+                // If generic "Text", append extension to differentiation (e.g., "Text (.toml)")
+                const name = config.name === 'Text' && ext !== 'txt'
+                    ? `Text (.${ext})`
+                    : config.name;
+
                 return {
-                    name: config.name,
+                    name,
                     ext,
                     count,
                     percentage: (count / total) * 100,
@@ -58,7 +68,7 @@ export const StatsView: React.FC<StatsViewProps> = ({ files, stats }) => {
     const strokeWidth = 24;
     const radius = (size - strokeWidth) / 2;
     const circumference = 2 * Math.PI * radius;
-    
+
     let accumulatedOffset = 0;
     const segments = languageStats.map((stat) => {
         const segmentLength = (stat.percentage / 100) * circumference;
@@ -77,6 +87,18 @@ export const StatsView: React.FC<StatsViewProps> = ({ files, stats }) => {
 
     return (
         <div className="flex flex-col gap-4 p-4 h-full overflow-y-auto">
+            {/* Token Budget Bar */}
+            <TokenBudgetBar
+                currentTokens={stats.tokens}
+                tokenBudget={stats.tokenBudget || 128000}
+                activeModelId={stats.selectedModelId}
+                onBudgetChange={(newBudget, newModelId) => {
+                    if (onUpdateBudget) {
+                        onUpdateBudget(newBudget, newModelId);
+                    }
+                }}
+            />
+
             {/* Pie Chart */}
             <div className="flex flex-col items-center py-6 bg-[var(--theme-bg)] rounded-xl border border-[var(--theme-border)]">
                 <div className="relative">
@@ -133,9 +155,9 @@ export const StatsView: React.FC<StatsViewProps> = ({ files, stats }) => {
                             className="flex items-center justify-between px-3 py-2 hover:bg-[var(--theme-surface-hover)] transition-colors"
                         >
                             <div className="flex items-center gap-2">
-                                <div 
-                                    className="w-3 h-3 rounded-sm shrink-0" 
-                                    style={{ backgroundColor: stat.color }} 
+                                <div
+                                    className="w-3 h-3 rounded-sm shrink-0"
+                                    style={{ backgroundColor: stat.color }}
                                 />
                                 <span className="text-xs text-[var(--theme-text-primary)] truncate">{stat.name}</span>
                             </div>

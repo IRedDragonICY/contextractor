@@ -27,7 +27,7 @@ export const TreeItem = ({ node, level, onRemove, onSelectFile, selectedIds }: {
     return (
         <div className="select-none">
             <div
-                className={`flex items-center py-1 pr-2 rounded-lg group transition-colors cursor-pointer hover:bg-[var(--theme-surface-hover)] border ${isSelected ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)]/10' : 'border-transparent hover:border-[var(--theme-border)]'}`}
+                className={`flex items-center py-1 pr-2 rounded-lg group transition-colors cursor-pointer hover:bg-[var(--theme-surface-hover)] border ${isSelected ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)]/10' : 'border-transparent hover:border-[var(--theme-border)]'} ${node.fileData?.isHidden ? 'opacity-50 grayscale' : ''}`}
                 style={{ paddingLeft: `${indent + 8}px` }}
                 onClick={handleClick}
             >

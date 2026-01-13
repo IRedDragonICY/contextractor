@@ -105,22 +105,7 @@ const extractPathsFromPlainText = (text: string): string[] => {
     return paths;
 };
 
-/**
- * Convert Tauri file info to File object
- */
-const tauriFileToFile = (info: TauriFileInfo): File => {
-    const blob = new Blob([info.content], { type: 'text/plain' });
-    const file = new File([blob], info.name, { type: 'text/plain' });
 
-    // Add path property
-    Object.defineProperty(file, 'path', {
-        value: info.path,
-        writable: false,
-        enumerable: true
-    });
-
-    return file;
-};
 
 /**
  * Read files from paths using Tauri backend
@@ -211,6 +196,7 @@ const readFilesViaTauri = async (paths: string[]): Promise<File[]> => {
             });
 
         console.log('[Dropzone] Read', files.length, 'files via Tauri');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (files.length > 0) console.log('[Dropzone] Sample relative path:', (files[0] as any).path);
         return files;
     } catch (error) {

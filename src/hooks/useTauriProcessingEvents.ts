@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { listen } from '@tauri-apps/api/event';
-import { useProcessingStore } from '@/stores/processingStore';
+import { useStatsActions } from '@/store';
 import { ProcessingProgress } from '@/types/processing';
 
 export function useTauriProcessingEvents() {
-    const { updateProgress } = useProcessingStore();
+    const { updateProgress } = useStatsActions();
     // Use a ref to keep the listener stable if strict mode double-invokes
     const unlistenRef = useRef<(() => void) | null>(null);
 

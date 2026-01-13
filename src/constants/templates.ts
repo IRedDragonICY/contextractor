@@ -7,7 +7,7 @@ export interface PromptTemplate {
     id: string;
     name: string;
     description: string;
-    category: 'analysis' | 'refactor' | 'doc' | 'test' | 'security' | 'custom';
+    category: 'analysis' | 'refactor' | 'doc' | 'test' | 'security' | 'wrapper' | 'custom';
     template: string; // For custom templates or cached content
     promptFile?: string; // Path to .md file (relative to /prompts/)
 }
@@ -85,6 +85,36 @@ export async function preloadAllPrompts(): Promise<void> {
 
 // Default templates with metadata only (content loaded at runtime)
 export const DEFAULT_PROMPT_TEMPLATES: PromptTemplate[] = [
+    // Wrappers
+    {
+        id: 'wrapper-xml',
+        name: 'XML Wrap',
+        description: 'Wrap content in semantic XML tags with file path attributes.',
+        category: 'wrapper',
+        template: `<files>\n${TEMPLATE_PLACEHOLDER}\n</files>`,
+    },
+    {
+        id: 'wrapper-markdown',
+        name: 'Markdown Code Blocks',
+        description: 'Standard Markdown code fence wrapping.',
+        category: 'wrapper',
+        template: TEMPLATE_PLACEHOLDER, // The system defaults to this anyway, but explicit is good
+    },
+    {
+        id: 'wrapper-json',
+        name: 'JSON Structure',
+        description: 'Output as a structured JSON object.',
+        category: 'wrapper',
+        template: `{\n  "files": [\n${TEMPLATE_PLACEHOLDER}\n  ]\n}`,
+    },
+    {
+        id: 'wrapper-xml-anthropic',
+        name: 'Anthropic XML',
+        description: 'Claude-optimized XML structure (<documents>).',
+        category: 'wrapper',
+        template: `<documents>\n${TEMPLATE_PLACEHOLDER}\n</documents>`,
+    },
+
     // Analysis
     {
         id: 'analysis-explain',

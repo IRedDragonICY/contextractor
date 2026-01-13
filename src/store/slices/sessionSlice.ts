@@ -46,6 +46,24 @@ const createEmptySession = (name?: string): SessionMeta => ({
     type: 'editor',
     name: name || `Untitled ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`,
     files: [],
+    filters: {
+        presets: {
+            source: true, // Default to source only
+            documentation: false,
+            config: false,
+            noTests: true, // Default to hiding tests
+        },
+        excludePatterns: ['**/node_modules/**', '**/.git/**', '**/dist/**', '**/build/**'],
+    },
+    stats: {
+        totalFiles: 0,
+        totalTokens: 0,
+        estimatedCost: 0,
+        selectedFilesCount: 0,
+        selectedTokensCount: 0,
+        tokenBudget: 128000,
+        selectedModelId: 'gpt-4o',
+    },
     outputStyle: 'standard',
     viewMode: 'tree',
     codeProcessingMode: 'raw',
@@ -122,7 +140,7 @@ export const createSessionSlice: StoreSlice<SessionSlice> = (set, get) => ({
 
         set((draft) => {
             const addOrUpdateRecentProject = get().addOrUpdateRecentProject;
-            
+
             // Save sessions with files to recent projects
             sessionsToClose.filter(s => s.files.length > 0).forEach(session => {
                 addOrUpdateRecentProject(session);
@@ -143,7 +161,7 @@ export const createSessionSlice: StoreSlice<SessionSlice> = (set, get) => ({
 
         set((draft) => {
             const addOrUpdateRecentProject = get().addOrUpdateRecentProject;
-            
+
             // Save sessions with files to recent projects
             draft.sessions.filter(s => s.files.length > 0).forEach(session => {
                 addOrUpdateRecentProject(session);
@@ -319,6 +337,24 @@ export const createSessionSlice: StoreSlice<SessionSlice> = (set, get) => ({
                 isActive: true,
                 isPinned: false,
                 color: '#89D185',
+                filters: {
+                    presets: {
+                        source: true,
+                        documentation: false,
+                        config: false,
+                        noTests: true,
+                    },
+                    excludePatterns: [],
+                },
+                stats: {
+                    totalFiles: 0,
+                    totalTokens: 0,
+                    estimatedCost: 0,
+                    selectedFilesCount: 0,
+                    selectedTokensCount: 0,
+                    tokenBudget: 128000,
+                    selectedModelId: 'gpt-4-turbo',
+                },
             };
 
             state.sessions.forEach(s => { s.isActive = false; });
@@ -352,6 +388,23 @@ export const createSessionSlice: StoreSlice<SessionSlice> = (set, get) => ({
                 isActive: true,
                 isPinned: false,
                 color: '#EF4444',
+                filters: {
+                    presets: {
+                        source: true,
+                        documentation: false,
+                        config: false,
+                        noTests: true,
+                    },
+                    excludePatterns: [],
+                },
+                stats: {
+                    totalFiles: 0,
+                    totalTokens: 0,
+                    estimatedCost: 0,
+                    selectedFilesCount: 0,
+                    selectedTokensCount: 0,
+                    tokenBudget: 128000,
+                },
             };
 
             state.sessions.forEach(s => { s.isActive = false; });

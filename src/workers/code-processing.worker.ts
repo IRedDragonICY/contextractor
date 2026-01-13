@@ -17,6 +17,10 @@ export interface WorkerMessage {
 }
 
 import { ProcessingProgress } from '@/types/processing';
+import { getEncoding } from 'js-tiktoken';
+
+// Singleton encoder instance
+const enc = getEncoding('cl100k_base'); // GPT-4 tokenizer
 
 export interface WorkerResponse {
     type: 'result' | 'progress' | 'error';
@@ -86,15 +90,27 @@ async function processFile(
         return content;
     }
 
-    if (mode === 'minify') {
-        return regexProcess(content, extension, mode);
-    }
-
-    // AST-capable modes (remove-comments, signatures-only, interfaces-only)
-    if (mode === 'remove-comments' || mode === 'signatures-only' || mode === 'interfaces-only') {
+    // Try AST transformation first for supported modes
+    if (['remove-comments', 'signatures-only', 'interfaces-only', 'minify'].includes(mode)) {
         try {
             const astResult = await transformWithExtension(content, extension, mode);
             if (astResult !== null) {
+                // If minify, we might want to do a secondary regex pass to cleanup whitespace
+                // since AST typically just removes comments but leaves structure
+                if (mode === 'minify') {
+                    // For now, AST 'minify' just removes comments.
+                    // We can pipe it into regexProcess for safe whitespace removal if we want.
+                    // But let's trust AST result for now or do a simple whitespace cleanup?
+                    // Actually, regexProcess('minify') does comments + whitespace.
+                    // If AST did comments, we just need whitespace cleanup.
+                    // Let's rely on regexProcess for the whitespace part if needed?
+                    // Or just return astResult if it's "good enough" for Level 2?
+                    // Level 2 is "Remove comments & excess whitespace".
+                    // AST `remove-comments` returns code with blank lines where comments were.
+                    // So we SHOULD run regex cleanup on it.
+                    const cleaned = regexProcess(astResult, extension, 'minify');
+                    return cleaned;
+                }
                 return astResult;
             }
         } catch (error) {
@@ -103,7 +119,12 @@ async function processFile(
     }
 
     // Fallback to regex pipeline
-    return regexProcess(content, extension, mode === 'remove-comments' ? 'remove-comments' : 'raw');
+    // For 'minify' fallback, it uses 'minify' mode.
+    // For 'remove-comments' fallback, it uses 'remove-comments'.
+    // For others (signatures-only etc), if AST failed, we might check if regex supports it?
+    // Regex doesn't support signatures-only really. So fallback to raw or remove-comments?
+    // Let's stick to existing logic:
+    return regexProcess(content, extension, mode === 'signatures-only' || mode === 'interfaces-only' ? 'raw' : mode);
 }
 
 self.onmessage = async (e: MessageEvent<WorkerMessage>) => {
@@ -153,7 +174,11 @@ self.onmessage = async (e: MessageEvent<WorkerMessage>) => {
         const processedLen = processedContent.length;
         processedLengthTotal += processedLen;
 
-        tokens_saved += (originalLen - processedLen);
+        // Accurate token counting using tiktoken
+        const originalTokens = enc.encode(file.content).length;
+        const processedTokens = enc.encode(processedContent).length;
+        tokens_saved += (originalTokens - processedTokens);
+
         processed_bytes += originalLen; // tracking input progress
 
         appendFileLines(lines, outputStyle, pathLabel, ext, processedContent, i === 0);

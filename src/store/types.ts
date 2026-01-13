@@ -5,10 +5,10 @@
  */
 
 import type { StateCreator } from 'zustand';
-import type { 
-    OutputStyleType, 
-    ViewModeType, 
-    CodeProcessingModeType 
+import type {
+    OutputStyleType,
+    ViewModeType,
+    CodeProcessingModeType
 } from '@/types/session';
 import type { FileData, PromptTemplate } from '@/types';
 
@@ -34,6 +34,8 @@ export interface SessionMeta {
     type: 'editor' | 'settings' | 'report-issue';
     name: string;
     files: SessionFileMeta[];
+    filters: SmartContextFilters;
+    stats: SessionStats;
     outputStyle: OutputStyleType;
     viewMode: ViewModeType;
     codeProcessingMode: CodeProcessingModeType;
@@ -42,6 +44,26 @@ export interface SessionMeta {
     isActive: boolean;
     isPinned: boolean;
     color?: string;
+}
+
+export interface SmartContextFilters {
+    presets: {
+        source: boolean;
+        documentation: boolean;
+        config: boolean;
+        noTests: boolean;
+    };
+    excludePatterns: string[]; // Glob patterns
+}
+
+export interface SessionStats {
+    totalFiles: number;
+    totalTokens: number;
+    estimatedCost: number; // In USD
+    selectedFilesCount: number;
+    selectedTokensCount: number;
+    tokenBudget: number; // User defined limit
+    selectedModelId?: string; // Specific model ID (e.g. 'gpt-4o')
 }
 
 /** Recent project with session snapshot metadata */
@@ -115,19 +137,19 @@ export interface SessionSliceActions {
     renameSession: (id: string, name: string) => void;
     togglePinSession: (id: string) => void;
     duplicateSession: (id: string) => Promise<SessionMeta | null>;
-    
+
     // File management (stores metadata, offloads content to IndexedDB)
     addFilesToSession: (sessionId: string, files: FileData[]) => Promise<void>;
     removeFileFromSession: (sessionId: string, fileId: string) => Promise<void>;
     updateSessionFiles: (sessionId: string, files: SessionFileMeta[]) => void;
-    
+
     // Session settings
     updateSessionSettings: (id: string, settings: {
         outputStyle?: OutputStyleType;
         viewMode?: ViewModeType;
         codeProcessingMode?: CodeProcessingModeType;
     }) => void;
-    
+
     // UI-related session actions
     reorderSessions: (fromIndex: number, toIndex: number) => void;
     openSettingsTab: () => void;
@@ -155,10 +177,51 @@ export interface TemplateSliceActions {
 export type TemplateSlice = TemplateSliceState & TemplateSliceActions;
 
 // ============================================
+// Filter Slice
+// ============================================
+
+export interface FilterSliceActions {
+    togglePreset: (sessionId: string, preset: keyof SmartContextFilters['presets']) => void;
+    addExcludePattern: (sessionId: string, pattern: string) => void;
+    removeExcludePattern: (sessionId: string, pattern: string) => void;
+    setExcludePatterns: (sessionId: string, patterns: string[]) => void;
+}
+
+export type FilterSlice = FilterSliceActions; // State is in SessionMeta
+
+// ============================================
+// Stats Slice
+// ============================================
+
+export interface StatsSliceState {
+    // Global processing state (from old processingStore)
+    isProcessing: boolean;
+    processingProgress: {
+        current_file_name: string;
+        processed_files_count: number;
+        total_files_count: number;
+        processed_bytes: number;
+        total_bytes: number;
+        tokens_saved: number;
+    } | null;
+}
+
+export interface StatsSliceActions {
+    updateSessionStats: (sessionId: string, stats: Partial<SessionStats>) => void;
+
+    // Processing actions
+    startProcessing: (totalFiles: number, totalBytes: number) => void;
+    updateProcessingProgress: (progress: StatsSliceState['processingProgress']) => void;
+    endProcessing: () => void;
+}
+
+export type StatsSlice = StatsSliceState & StatsSliceActions;
+
+// ============================================
 // Combined App Store
 // ============================================
 
-export type AppStore = UISlice & ProjectSlice & SessionSlice & TemplateSlice;
+export type AppStore = UISlice & ProjectSlice & SessionSlice & TemplateSlice & FilterSlice & StatsSlice;
 
 // ============================================
 // Slice Creator Type Helper

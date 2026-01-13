@@ -2,10 +2,10 @@
 // Inspired by VS Code tabs and Adobe Acrobat recent files
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { 
-    Session, 
-    SessionFile, 
-    RecentProject, 
+import {
+    Session,
+    SessionFile,
+    RecentProject,
     SessionManagerState,
     OutputStyleType,
     ViewModeType,
@@ -13,10 +13,10 @@ import {
     TAB_COLORS
 } from '@/types/session';
 import { FileData } from '@/types';
-import { 
-    loadSessionManagerState, 
-    saveSessionManagerState, 
-    clearOldLocalStorage 
+import {
+    loadSessionManagerState,
+    saveSessionManagerState,
+    clearOldLocalStorage
 } from '@/lib/db';
 
 const MAX_RECENT_PROJECTS = 20;
@@ -72,7 +72,7 @@ export const sessionFileToFileData = (file: SessionFile): FileData => ({
 export const convertSessionFiles = (sessionId: string, files: SessionFile[]): FileData[] => {
     // Check if we have this session cached
     let sessionCache = fileDataCache.get(sessionId);
-    
+
     // If cache exists and has same file count, return cached version
     if (sessionCache && sessionCache.size === files.length) {
         // Quick check - if first and last file IDs match, use cache
@@ -81,11 +81,11 @@ export const convertSessionFiles = (sessionId: string, files: SessionFile[]): Fi
             return Array.from(sessionCache.values());
         }
     }
-    
+
     // Create new cache for this session
     sessionCache = new Map();
     const result: FileData[] = [];
-    
+
     for (const file of files) {
         const fileData: FileData = {
             ...file,
@@ -96,15 +96,15 @@ export const convertSessionFiles = (sessionId: string, files: SessionFile[]): Fi
         sessionCache.set(file.id, fileData);
         result.push(fileData);
     }
-    
+
     fileDataCache.set(sessionId, sessionCache);
-    
+
     // Limit cache size to prevent memory issues (keep last 10 sessions)
     if (fileDataCache.size > 10) {
         const firstKey = fileDataCache.keys().next().value;
         if (firstKey) fileDataCache.delete(firstKey);
     }
-    
+
     return result;
 };
 
@@ -122,6 +122,24 @@ const createEmptySession = (name?: string): Session => ({
     isActive: true,
     isPinned: false,
     color: getRandomColor(),
+    filters: {
+        presets: {
+            source: true,
+            documentation: true,
+            config: true,
+            noTests: true, // Default to hiding tests per UX
+        },
+        excludePatterns: [],
+    },
+    stats: {
+        totalFiles: 0,
+        totalTokens: 0,
+        estimatedCost: 0,
+        selectedFilesCount: 0,
+        selectedTokensCount: 0,
+        tokenBudget: 128000,
+        selectedModelId: 'gpt-4o',
+    }
 });
 
 export const useSessionManager = () => {
@@ -146,9 +164,9 @@ export const useSessionManager = () => {
             try {
                 clearOldLocalStorage();
                 setLoadingProgress(50);
-                
+
                 const loaded = await loadSessionManagerState();
-                
+
                 // Immediate state update - no transitions or delays
                 setState(loaded);
                 setLoadingProgress(100);
@@ -163,7 +181,7 @@ export const useSessionManager = () => {
     // Save state on change (debounced, using IndexedDB) - Non-blocking
     useEffect(() => {
         if (isLoading || isSaving.current) return;
-        
+
         const timeout = setTimeout(() => {
             // Use requestIdleCallback for non-blocking save
             const saveData = async () => {
@@ -185,7 +203,7 @@ export const useSessionManager = () => {
                 saveData();
             }
         }, 500); // Increased debounce for better batching
-        
+
         return () => clearTimeout(timeout);
     }, [state, isLoading]);
 
@@ -194,12 +212,33 @@ export const useSessionManager = () => {
         return state.sessions.find(s => s.id === state.activeSessionId) || null;
     }, [state.sessions, state.activeSessionId]);
 
+    // Update session filters
+    const updateSessionFilters = useCallback((id: string, filters: Partial<Session['filters']>) => {
+        setState(prev => ({
+            ...prev,
+            sessions: prev.sessions.map(s => {
+                if (s.id !== id) return s;
+
+                const currentFilters = s.filters || {
+                    presets: { source: true, documentation: true, config: true, noTests: true },
+                    excludePatterns: []
+                };
+
+                return {
+                    ...s,
+                    filters: { ...currentFilters, ...filters },
+                    updatedAt: Date.now()
+                };
+            }),
+        }));
+    }, []);
+
     // Create new session
     const createSession = useCallback((name?: string | React.MouseEvent) => {
         // Ignore event objects passed from onClick handlers
         const sessionName = typeof name === 'string' ? name : undefined;
         const newSession = createEmptySession(sessionName);
-        
+
         setState(prev => {
             const updatedSessions = prev.sessions.map(s => ({ ...s, isActive: false }));
             return {
@@ -218,19 +257,19 @@ export const useSessionManager = () => {
         setState(prev => {
             const sessionToClose = prev.sessions.find(s => s.id === id);
             const filteredSessions = prev.sessions.filter(s => s.id !== id);
-            
+
             // Save to recent if has files
             let newRecentProjects = prev.recentProjects;
             if (sessionToClose && sessionToClose.files.length > 0) {
                 // Check if this session came from a recent project
-                const existingRecent = prev.recentProjects.find(p => 
+                const existingRecent = prev.recentProjects.find(p =>
                     p.openSessionIds?.includes(id)
                 );
 
                 if (existingRecent) {
                     // Update existing recent project with latest snapshot and remove from openSessionIds
-                    newRecentProjects = prev.recentProjects.map(p => 
-                        p.id === existingRecent.id 
+                    newRecentProjects = prev.recentProjects.map(p =>
+                        p.id === existingRecent.id
                             ? {
                                 ...p,
                                 sessionSnapshot: sessionToClose,
@@ -293,14 +332,14 @@ export const useSessionManager = () => {
 
             sessionsToClose.forEach(session => {
                 // Check if this session came from a recent project
-                const existingRecent = newRecentProjects.find(p => 
+                const existingRecent = newRecentProjects.find(p =>
                     p.openSessionIds?.includes(session.id)
                 );
 
                 if (existingRecent) {
                     // Update existing recent project
-                    newRecentProjects = newRecentProjects.map(p => 
-                        p.id === existingRecent.id 
+                    newRecentProjects = newRecentProjects.map(p =>
+                        p.id === existingRecent.id
                             ? {
                                 ...p,
                                 sessionSnapshot: session,
@@ -347,14 +386,14 @@ export const useSessionManager = () => {
 
             prev.sessions.filter(s => s.files.length > 0).forEach(session => {
                 // Check if this session came from a recent project
-                const existingRecent = newRecentProjects.find(p => 
+                const existingRecent = newRecentProjects.find(p =>
                     p.openSessionIds?.includes(session.id)
                 );
 
                 if (existingRecent) {
                     // Update existing recent project
-                    newRecentProjects = newRecentProjects.map(p => 
-                        p.id === existingRecent.id 
+                    newRecentProjects = newRecentProjects.map(p =>
+                        p.id === existingRecent.id
                             ? {
                                 ...p,
                                 sessionSnapshot: session,
@@ -392,7 +431,7 @@ export const useSessionManager = () => {
                 recentProjects: newRecentProjects.slice(0, MAX_RECENT_PROJECTS),
                 showHomeView: true,
             };
-    });
+        });
     }, []);
 
     // Switch session - INSTANT, only update activeSessionId without recreating session objects
@@ -462,7 +501,7 @@ export const useSessionManager = () => {
         setState(prev => {
             // Check if settings tab already exists
             const existingSettings = prev.sessions.find(s => s.type === 'settings');
-            
+
             if (existingSettings) {
                 return {
                     ...prev,
@@ -506,7 +545,7 @@ export const useSessionManager = () => {
         setState(prev => {
             // Check if report issue tab already exists
             const existingReportIssue = prev.sessions.find(s => s.type === 'report-issue');
-            
+
             if (existingReportIssue) {
                 return {
                     ...prev,
@@ -550,7 +589,7 @@ export const useSessionManager = () => {
         setState(prev => {
             // Check if changelog tab already exists
             const existingChangelog = prev.sessions.find(s => s.type === 'changelog');
-            
+
             if (existingChangelog) {
                 return {
                     ...prev,
@@ -609,6 +648,43 @@ export const useSessionManager = () => {
         }));
     }, []);
 
+    // Update session stats
+    const updateSessionStats = useCallback((id: string, stats: Partial<Session['stats']>) => {
+        setState(prev => ({
+            ...prev,
+            sessions: prev.sessions.map(s => {
+                if (s.id !== id) return s;
+                if (!stats) return s;
+
+                // Ensure strict types for stats
+                const currentStats = s.stats || {
+                    totalFiles: 0,
+                    totalTokens: 0,
+                    estimatedCost: 0,
+                    selectedFilesCount: 0,
+                    selectedTokensCount: 0,
+                    tokenBudget: 128000,
+                };
+
+                const updatedStats: Session['stats'] = {
+                    totalFiles: (stats.totalFiles ?? currentStats.totalFiles) || 0,
+                    totalTokens: (stats.totalTokens ?? currentStats.totalTokens) || 0,
+                    estimatedCost: (stats.estimatedCost ?? currentStats.estimatedCost) || 0,
+                    selectedFilesCount: (stats.selectedFilesCount ?? currentStats.selectedFilesCount) || 0,
+                    selectedTokensCount: (stats.selectedTokensCount ?? currentStats.selectedTokensCount) || 0,
+                    tokenBudget: (stats.tokenBudget ?? currentStats.tokenBudget) || 128000,
+                    selectedModelId: stats.selectedModelId ?? currentStats.selectedModelId,
+                };
+
+                return {
+                    ...s,
+                    stats: updatedStats,
+                    updatedAt: Date.now()
+                };
+            }),
+        }));
+    }, []);
+
     // Open recent project - INSTANT with proper caching
     // If session from this recent project is already open, switch to it instead
     const openRecentProject = useCallback((projectId: string) => {
@@ -617,7 +693,7 @@ export const useSessionManager = () => {
             if (!project) return prev;
 
             // Check if any session from this recent project is already open
-            const existingSessionId = project.openSessionIds?.find(sid => 
+            const existingSessionId = project.openSessionIds?.find(sid =>
                 prev.sessions.some(s => s.id === sid)
             );
 
@@ -648,12 +724,12 @@ export const useSessionManager = () => {
 
             // Update recent project's last opened and track the new session ID
             const updatedRecent = prev.recentProjects.map(p =>
-                p.id === projectId 
-                    ? { 
-                        ...p, 
+                p.id === projectId
+                    ? {
+                        ...p,
                         lastOpened: Date.now(),
                         openSessionIds: [...(p.openSessionIds || []), newSessionId]
-                    } 
+                    }
                     : p
             );
 
@@ -738,7 +814,9 @@ export const useSessionManager = () => {
         duplicateSession,
         updateSessionFiles,
         updateSessionSettings,
+        updateSessionStats,
         reorderSessions,
+        updateSessionFilters,
 
         // Recent projects actions
         openRecentProject,

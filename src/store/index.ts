@@ -92,7 +92,9 @@ export const useTemplateState = () => {
 // Actions (stable references, no re-renders)
 // ============================================
 
-export const useSessionActions = () => useSessionStore((state) => ({
+import { useShallow } from 'zustand/react/shallow';
+
+export const useSessionActions = () => useSessionStore(useShallow((state) => ({
     // Session actions
     createSession: state.createSession,
     closeSession: state.closeSession,
@@ -117,19 +119,22 @@ export const useSessionActions = () => useSessionStore((state) => ({
     addToGitHubHistory: state.addToGitHubHistory,
     // UI actions
     toggleHomeView: state.toggleHomeView,
-}));
+})));
 
 export const useTemplateActions = () => {
-    const addCustomTemplate = useSessionStore((state: AppStore) => state.addCustomTemplate);
-    const updateCustomTemplate = useSessionStore((state: AppStore) => state.updateCustomTemplate);
-    const removeCustomTemplate = useSessionStore((state: AppStore) => state.removeCustomTemplate);
-    const setSelectedTemplate = useSessionStore((state: AppStore) => state.setSelectedTemplate);
-    return {
-        addCustomTemplate,
-        updateCustomTemplate,
-        removeCustomTemplate,
-        setSelectedTemplate,
-    };
+    return useSessionStore(useShallow((state: AppStore) => ({
+        addCustomTemplate: state.addCustomTemplate,
+        updateCustomTemplate: state.updateCustomTemplate,
+        removeCustomTemplate: state.removeCustomTemplate,
+        setSelectedTemplate: state.setSelectedTemplate,
+    })));
+};
+
+/** Get combined template store (state + actions) */
+export const useTemplateStore = () => {
+    const state = useTemplateState();
+    const actions = useTemplateActions();
+    return { ...state, ...actions };
 };
 
 // ============================================
@@ -137,17 +142,25 @@ export const useTemplateActions = () => {
 // ============================================
 
 /** Get only UI-related actions */
-export const useUIActions = () => useSessionStore((state) => ({
+export const useUIActions = () => useSessionStore(useShallow((state) => ({
     toggleHomeView: state.toggleHomeView,
     setLoading: state.setLoading,
     setLoadingProgress: state.setLoadingProgress,
-}));
+})));
 
 /** Get only project-related actions */
-export const useProjectActions = () => useSessionStore((state) => ({
+export const useProjectActions = () => useSessionStore(useShallow((state) => ({
     openRecentProject: state.openRecentProject,
     removeRecentProject: state.removeRecentProject,
     clearRecentProjects: state.clearRecentProjects,
     togglePinRecentProject: state.togglePinRecentProject,
     addToGitHubHistory: state.addToGitHubHistory,
-}));
+})));
+
+/** Get only stats/processing related actions */
+export const useStatsActions = () => useSessionStore(useShallow((state) => ({
+    startProcessing: state.startProcessing,
+    updateProgress: state.updateProcessingProgress,
+    endProcessing: state.endProcessing,
+    updateStats: state.updateSessionStats, // Renamed to match slice
+})));

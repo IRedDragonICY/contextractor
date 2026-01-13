@@ -77,7 +77,7 @@ export const CodeProcessingSelector: React.FC<CodeProcessingSelectorProps> = ({
 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
-    
+
     const activeMode = PROCESSING_MODES.find(m => m.id === value) || PROCESSING_MODES[0];
 
     useEffect(() => {
@@ -97,10 +97,10 @@ export const CodeProcessingSelector: React.FC<CodeProcessingSelectorProps> = ({
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setIsExpanded(!isExpanded)}
                 className={`
-                    flex items-center gap-2 px-3 py-2 rounded-full
+                    flex items-center gap-2 px-4 h-10 rounded-full
                     border transition-all duration-200
-                    ${isExpanded 
-                        ? 'bg-[var(--theme-surface-hover)] border-[var(--theme-primary)]' 
+                    ${isExpanded
+                        ? 'bg-[var(--theme-surface-hover)] border-[var(--theme-primary)]'
                         : 'bg-[var(--theme-surface-elevated)] border-[var(--theme-border)] hover:bg-[var(--theme-surface-hover)]'
                     }
                 `}
@@ -153,9 +153,9 @@ export const CodeProcessingSelector: React.FC<CodeProcessingSelectorProps> = ({
                         {/* Header */}
                         <div className="px-4 py-3 border-b border-[var(--theme-border)] bg-[var(--theme-surface-elevated)]">
                             <div className="flex items-center gap-2">
-                                <AnimatedIcon 
-                                    icon={UI_ICONS_MAP.tune} 
-                                    className="w-4 h-4 text-[var(--theme-primary)]" 
+                                <AnimatedIcon
+                                    icon={UI_ICONS_MAP.tune}
+                                    className="w-4 h-4 text-[var(--theme-primary)]"
                                 />
                                 <span className="text-xs font-semibold text-[var(--theme-text-secondary)] uppercase tracking-wider">
                                     Smart Processing
@@ -179,22 +179,22 @@ export const CodeProcessingSelector: React.FC<CodeProcessingSelectorProps> = ({
                                         }}
                                         className={`
                                             group relative flex items-start gap-3 w-full p-3 rounded-xl text-left transition-all duration-200
-                                            ${isActive 
-                                                ? 'bg-[var(--theme-primary)]/15' 
+                                            ${isActive
+                                                ? 'bg-[var(--theme-primary)]/15'
                                                 : 'hover:bg-[var(--theme-surface-hover)]'
                                             }
                                         `}
                                     >
                                         {/* Active Indicator */}
                                         {isActive && (
-                                            <motion.div 
+                                            <motion.div
                                                 layoutId="processingActiveIndicator"
-                                                className="absolute left-0 top-3 bottom-3 w-1 bg-[var(--theme-primary)] rounded-r-full" 
+                                                className="absolute left-0 top-3 bottom-3 w-1 bg-[var(--theme-primary)] rounded-r-full"
                                             />
                                         )}
 
                                         {/* Icon */}
-                                        <div 
+                                        <div
                                             className={`
                                                 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors
                                                 ${isActive ? 'bg-[var(--theme-primary)]/20' : 'bg-[var(--theme-surface-elevated)]'}

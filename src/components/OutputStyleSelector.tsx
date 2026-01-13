@@ -33,18 +33,18 @@ export const OutputStyleSelector = ({ value, onChange, className }: OutputStyleS
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setIsOpen(!isOpen)}
                 className={`
-                    flex items-center gap-3 pl-4 pr-4 py-2.5 rounded-full w-full
+                    flex items-center gap-3 px-4 h-10 rounded-full w-full
                     border transition-colors duration-200 overflow-hidden
-                    ${isOpen 
-                        ? 'bg-[var(--theme-surface-hover)] border-[var(--theme-primary)] text-[var(--theme-text-primary)]' 
+                    ${isOpen
+                        ? 'bg-[var(--theme-surface-hover)] border-[var(--theme-primary)] text-[var(--theme-text-primary)]'
                         : 'bg-[var(--theme-surface-elevated)] border-[var(--theme-border)] text-[var(--theme-text-secondary)] hover:bg-[var(--theme-surface-hover)]'
                     }
                 `}
             >
                 {/* Animated Icon */}
                 <div className="relative w-4.5 h-4.5 flex items-center justify-center shrink-0">
-                    <AnimatedIcon 
-                        icon={UI_ICONS_MAP.tune} 
+                    <AnimatedIcon
+                        icon={UI_ICONS_MAP.tune}
                         className={`w-full h-full ${isOpen ? 'text-[var(--theme-primary)]' : 'text-[var(--theme-text-secondary)]'}`}
                     />
                 </div>
@@ -87,17 +87,17 @@ export const OutputStyleSelector = ({ value, onChange, className }: OutputStyleS
                                         }}
                                         className={`
                                             group relative flex items-start gap-4 p-3 rounded-xl text-left transition-all duration-200 shrink-0
-                                            ${isActive 
-                                                ? 'bg-[var(--theme-primary)]/20 text-[var(--theme-primary)]' 
+                                            ${isActive
+                                                ? 'bg-[var(--theme-primary)]/20 text-[var(--theme-primary)]'
                                                 : 'text-[var(--theme-text-secondary)] hover:bg-[var(--theme-surface-hover)] hover:text-[var(--theme-text-primary)]'
                                             }
                                         `}
                                     >
                                         {/* Status Indicator Line */}
                                         {isActive && (
-                                            <motion.div 
+                                            <motion.div
                                                 layoutId="activeIndicator"
-                                                className="absolute left-0 top-3 bottom-3 w-1 bg-[var(--theme-primary)] rounded-r-full" 
+                                                className="absolute left-0 top-3 bottom-3 w-1 bg-[var(--theme-primary)] rounded-r-full"
                                             />
                                         )}
 
@@ -119,12 +119,12 @@ export const OutputStyleSelector = ({ value, onChange, className }: OutputStyleS
                                             <p className={`text-xs leading-relaxed mb-2 ${isActive ? 'text-[var(--theme-primary)]/80' : 'text-[var(--theme-text-tertiary)] group-hover:text-[var(--theme-text-secondary)]'}`}>
                                                 {option.description}
                                             </p>
-                                            
+
                                             {/* Code Preview */}
                                             <div className={`
                                                 text-[10px] font-mono p-2.5 rounded-lg border
-                                                ${isActive 
-                                                    ? 'bg-[var(--theme-primary)]/10 border-[var(--theme-primary)]/20 text-[var(--theme-primary)]' 
+                                                ${isActive
+                                                    ? 'bg-[var(--theme-primary)]/10 border-[var(--theme-primary)]/20 text-[var(--theme-primary)]'
                                                     : 'bg-[var(--theme-bg)] border-[var(--theme-border)] text-[var(--theme-text-tertiary)] group-hover:border-[var(--theme-text-tertiary)]/50'
                                                 }
                                             `}>

@@ -8,7 +8,7 @@ export const GoogleButton = React.memo(({
 }: GoogleButtonProps) => {
     const base = "relative inline-flex items-center justify-center overflow-hidden font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0";
     const variants: Record<string, string> = {
-        filled: "bg-[var(--theme-primary)] text-[var(--theme-primary-contrast)] hover:brightness-110 hover:shadow-md active:shadow-none rounded-full px-6 py-2.5 text-sm shadow-sm",
+        filled: "bg-[var(--theme-primary)] text-[var(--theme-primary-contrast)] hover:brightness-110 hover:shadow-md active:shadow-none rounded-full px-6 h-10 text-sm shadow-sm",
         tonal: "bg-[var(--theme-surface-elevated)] text-[var(--theme-primary)] hover:bg-[var(--theme-surface-hover)] rounded-xl px-4 py-2 text-sm border border-[var(--theme-border)]",
         text: "text-[var(--theme-primary)] hover:bg-[var(--theme-primary)]/10 rounded-full px-4 py-2 text-sm",
         outlined: "border border-[var(--theme-text-tertiary)] text-[var(--theme-text-secondary)] hover:bg-[var(--theme-surface-elevated)] hover:text-[var(--theme-text-primary)] rounded-full px-6 py-2.5 text-sm",

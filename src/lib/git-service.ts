@@ -37,12 +37,6 @@ const buildBaseUrlForProvider = (metadata: GitRepoMetadata, branch: string): str
     return `https://raw.githubusercontent.com/${metadata.owner}/${metadata.repo}/${branch}`;
 };
 
-const getHuggingFacePathInfo = (pathParts: string[]): { resource: HuggingFaceRepoType; ownerIndex: number } => {
-    if (pathParts[0] === 'datasets') return { resource: 'datasets', ownerIndex: 1 };
-    if (pathParts[0] === 'spaces') return { resource: 'spaces', ownerIndex: 1 };
-    return { resource: 'models', ownerIndex: 0 };
-};
-
 const getHuggingFaceApiBase = (resource: HuggingFaceRepoType, owner: string, repo: string) =>
     `https://huggingface.co/api/${resource}/${owner}/${repo}`;
 
@@ -61,9 +55,11 @@ const fetchHuggingFaceRefs = async (
         if (!res.ok) return { branches: [], tags: [] };
         const data = await res.json();
         const branches = Array.isArray(data?.branches)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ? data.branches.map((b: any) => normalizeHuggingFaceRefName(b?.name ?? b?.ref ?? b)).filter(Boolean)
             : [];
         const tags = Array.isArray(data?.tags)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ? data.tags.map((t: any) => normalizeHuggingFaceRefName(t?.name ?? t?.ref ?? t)).filter(Boolean)
             : [];
         return { branches, tags };
@@ -441,7 +437,9 @@ export const fetchGitTree = async (
                                     subOwner = parts[parts.length - 2];
                                     subRepo = parts[parts.length - 1];
                                 }
-                            } catch { }
+                            } catch {
+                                // Ignore URL parsing errors
+                            }
                         } else {
                             // Relative path resolution
                             if (subUrl.startsWith('../')) {

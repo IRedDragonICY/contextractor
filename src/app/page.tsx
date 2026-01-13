@@ -42,6 +42,8 @@ import { VirtualizedCodeViewer } from '@/components/VirtualizedCodeViewer';
 import { WorkspaceSkeleton, LoadingProgress } from '@/components/LoadingSkeleton';
 import { VirtualizedFileList } from '@/components/VirtualizedFileList';
 import { StatsView } from '@/components/StatsView';
+import { SidebarFilterPanel } from '@/components/SidebarFilterPanel';
+
 
 // Hooks
 import { useSearchLines } from '@/hooks/useSearch';
@@ -49,12 +51,14 @@ import { useSessionManager, fileDataToSessionFile, convertSessionFiles } from '@
 import { useHistory } from '@/hooks/useHistory';
 import { ThemeProvider, useThemeProvider } from '@/hooks/useTheme';
 import { useSettings } from '@/hooks/useSettings';
+import { useFilteredFiles } from '@/hooks/useFilteredFiles';
 
 // Services & Utils
 import { processFileObject, unzipAndProcess } from '@/lib/file-processing';
 import { getFilesFromEvent } from '@/lib/dropzone-utils';
 import { buildFileTree, generateAsciiTree } from '@/lib/file-tree';
-import { scanForSecrets, SecurityIssue } from '@/lib/security';
+import { scanForSecrets, SecurityIssue, redactSecrets } from '@/lib/security';
+import { filterWithGitIgnore } from '@/lib/git-utils';
 import {
     processCodeAsync,
     terminateWorker,
@@ -64,13 +68,14 @@ import {
 } from '@/lib/code-processing-worker';
 import { ProcessingStatus } from '@/components/ProcessingStatus';
 import { useTauriProcessingEvents } from '@/hooks/useTauriProcessingEvents';
-import { useProcessingStore } from '@/stores/processingStore';
+import { useStatsActions } from '@/store';
 import { invoke } from '@tauri-apps/api/core';
 
 // Types & Constants
 import { OutputStyle, FileData, ViewMode, TreeNode, CodeProcessingMode as CodeProcessingModeType } from '@/types';
 import { UI_ICONS_MAP } from '@/lib/icon-mapping';
 import { OutputStyleType, ViewModeType, CodeProcessingModeType as SessionCodeProcessingModeType } from '@/types/session';
+import { SmartContextFilters } from '@/store/types';
 import { DEFAULT_PROMPT_TEMPLATES, TEMPLATE_PLACEHOLDER, loadPromptContent } from '@/constants/templates';
 import { useTemplateState } from '@/store';
 
@@ -120,14 +125,19 @@ function Contextractor() {
         openSettingsTab,
         openReportIssueTab,
         openChangelogTab,
+        updateSessionFilters,
+        updateSessionStats,
     } = useSessionManager();
 
     // Derived state from active session - uses cached batch conversion
     // Cache is maintained per-session in useSessionManager
-    const files = useMemo(() => {
+    const rawFiles = useMemo(() => {
         if (!activeSession) return [];
         return convertSessionFiles(activeSession.id, activeSession.files);
     }, [activeSession]);
+
+    // Apply Smart Context Filters
+    const files = useFilteredFiles(rawFiles, activeSession?.filters);
 
     const outputStyle = activeSession?.outputStyle || 'standard';
     const viewMode = activeSession?.viewMode || 'tree';
@@ -162,7 +172,7 @@ function Contextractor() {
     const [exportModalOpen, setExportModalOpen] = useState(false);
     const [securityWarningOpen, setSecurityWarningOpen] = useState(false);
     const [securityIssues, setSecurityIssues] = useState<SecurityIssue[]>([]);
-    const [activeSideView, setActiveSideView] = useState<'explorer' | 'stats'>('explorer');
+    const [activeSideView, setActiveSideView] = useState<'explorer' | 'stats' | 'filters'>('explorer');
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [sidebarWidth, setSidebarWidth] = useState(320);
     const isResizing = useRef(false);
@@ -183,7 +193,7 @@ function Contextractor() {
 
     // Initialize Tauri processing events
     useTauriProcessingEvents();
-    const { startProcessing, updateProgress, endProcessing } = useProcessingStore();
+    const { startProcessing, updateProgress, endProcessing } = useStatsActions();
 
     // ============================================
     // OPTIMIZED CODE PROCESSING - Zero-Delay Tab Switching
@@ -196,14 +206,15 @@ function Contextractor() {
     // Track which session is currently processing (null = none)
     const [processingSessionId, setProcessingSessionId] = useState<string | null>(null);
 
+
     // isProcessing is true only if the CURRENT session is processing
     const isProcessing = processingSessionId === activeSessionId;
 
     // Use deferred value for expensive renders - keeps UI responsive during processing
     const deferredCombinedLines = useDeferredValue(combinedLines);
 
-    // Memoized text files to prevent unnecessary re-renders
-    const textFiles = useMemo(() => files.filter(f => f.isText), [files]);
+    // Memoized text files to prevent unnecessary re-renders (Exclude hidden files from processing/token counting)
+    const textFiles = useMemo(() => files.filter(f => f.isText && !f.isHidden), [files]);
 
     // Safety: Ensure lines are cleared immediately when files are removed/switched
     // This prevents "Zero-sized element" errors in Virtuoso due to stale lines with empty file groups
@@ -352,7 +363,7 @@ function Contextractor() {
             setTokenSavings(undefined);
             // Safety: Ensure processing state is cleared if files are empty
             // This fixes a visual bug where processing gets stuck if files are cleared rapidly
-            endProcessing([]);
+            endProcessing();
             return;
         }
 
@@ -499,7 +510,7 @@ function Contextractor() {
                     setProcessingSessionId(prev => prev === activeSessionId ? null : prev);
 
                     // Mark global processing as done so the status bar hides
-                    endProcessing([]);
+                    endProcessing();
 
                     // Cache for next time
                     if (activeSessionId) {
@@ -518,14 +529,14 @@ function Contextractor() {
                 if (!abortController.signal.aborted && error.message !== 'Cancelled') {
                     console.error('Processing error:', error);
                     setProcessingSessionId(prev => prev === activeSessionId ? null : prev);
-                    endProcessing([]);
+                    endProcessing();
                 }
             });
 
         return () => {
             abortController.abort();
             // Clear global processing status when effect is cleaned up (e.g. switching tabs/modes)
-            endProcessing([]);
+            endProcessing();
         };
     }, [textFiles, outputStyle, codeProcessingMode, activeSessionId, rawOutputLines, startProcessing, updateProgress, endProcessing]);
 
@@ -663,6 +674,49 @@ function Contextractor() {
         }
     }, [redo, activeSessionId, updateSessionFiles]);
 
+    const handleUpdateFilters = useCallback((filters: Partial<SmartContextFilters>) => {
+        if (activeSessionId) {
+            updateSessionFilters(activeSessionId, filters);
+        }
+    }, [activeSessionId, updateSessionFilters]);
+
+    const handleTogglePreset = useCallback((preset: keyof SmartContextFilters['presets']) => {
+        // Default filters if missing (legacy sessions)
+        const currentFilters = activeSession?.filters || {
+            presets: { source: true, documentation: true, config: true, noTests: true },
+            excludePatterns: []
+        };
+        const currentPresets = currentFilters.presets;
+
+        console.log('Toggling preset:', preset, currentFilters);
+
+        handleUpdateFilters({
+            presets: { ...currentPresets, [preset]: !currentPresets[preset] }
+        });
+    }, [activeSession?.filters, handleUpdateFilters]);
+
+    const handleAddPattern = useCallback((pattern: string) => {
+        const currentFilters = activeSession?.filters || {
+            presets: { source: true, documentation: true, config: true, noTests: true },
+            excludePatterns: []
+        };
+
+        handleUpdateFilters({
+            excludePatterns: [...currentFilters.excludePatterns, pattern]
+        });
+    }, [activeSession?.filters, handleUpdateFilters]);
+
+    const handleRemovePattern = useCallback((pattern: string) => {
+        const currentFilters = activeSession?.filters || {
+            presets: { source: true, documentation: true, config: true, noTests: true },
+            excludePatterns: []
+        };
+
+        handleUpdateFilters({
+            excludePatterns: currentFilters.excludePatterns.filter(p => p !== pattern)
+        });
+    }, [activeSession?.filters, handleUpdateFilters]);
+
     // Update session settings
     const setOutputStyle = useCallback((style: OutputStyle) => {
         if (!activeSessionId) return;
@@ -695,7 +749,13 @@ function Contextractor() {
         setProcessing(true);
         let newFiles: FileData[] = [];
 
-        for (const file of incomingFiles) {
+        // Apply .gitignore filtering if enabled
+        let filesToProcess = incomingFiles;
+        if (settings.filters.respectGitIgnore) {
+            filesToProcess = await filterWithGitIgnore(incomingFiles);
+        }
+
+        for (const file of filesToProcess) {
             const ext = file.name.split('.').pop()?.toLowerCase();
             if (ext === 'zip' || file.type === 'application/zip' || file.type === 'application/x-zip-compressed') {
                 const extracted = await unzipAndProcess(file);
@@ -802,9 +862,10 @@ function Contextractor() {
         return {
             count: target.length,
             lines: target.reduce((a, b) => a + b.linesOfCode, 0),
-            tokens: target.reduce((a, b) => a + b.tokenCount, 0)
+            tokens: target.reduce((a, b) => a + b.tokenCount, 0),
+            tokenBudget: activeSession?.stats?.tokenBudget || 0
         };
-    }, [files]);
+    }, [files, activeSession?.stats?.tokenBudget]);
     const selectedCount = selectedFileIds.size;
 
     // Git Import Handler - Updated for background import
@@ -1023,28 +1084,27 @@ function Contextractor() {
         performCopy();
     };
 
-    const performCopy = async () => {
+    const performCopy = async (shouldRedact: boolean = false) => {
         if (!hasContent) return;
 
         let contentToCopy = getCombinedText({ applyTemplate: false }); // Get raw combined text
+
+        if (shouldRedact) {
+            contentToCopy = redactSecrets(contentToCopy, settings.security);
+        }
+
         const appliedTemplate = selectedTemplate?.name ?? null;
 
         // If a template is selected, load its full content asynchronously
         if (selectedTemplate) {
-            setProcessing(true); // Re-use processing spinner or add a local one? 
-            // Better to just show a toast or something, but 'Processing...' button state handles it if we set isProcessing?
-            // Actually isProcessing is tied to session processing. 
-            // We can just rely on the async nature. 
-
+            setProcessing(true);
             try {
                 const templateContent = await loadPromptContent(selectedTemplate.id);
                 contentToCopy = applyTemplateToText(contentToCopy, templateContent);
             } catch (error) {
                 console.error('Failed to load template:', error);
-                // Fallback to default (placeholder) if load fails, or just raw text?
-                // logic continues with raw text or placeholder
             } finally {
-                setProcessing(false); // If we used it
+                setProcessing(false);
             }
         }
 
@@ -1062,7 +1122,9 @@ function Contextractor() {
             });
 
         setSecurityWarningOpen(false);
+        setSecurityIssues([]);
     };
+
 
     // Handler for HomeView actions
     const handleOpenFilePicker = () => {
@@ -1287,6 +1349,23 @@ function Contextractor() {
                                 )}
                                 <GoogleIcon icon={UI_ICONS_MAP.chart} className="w-6 h-6" />
                             </button>
+                            <button
+                                onClick={() => {
+                                    if (activeSideView === 'filters' && isSidebarOpen) {
+                                        setIsSidebarOpen(false);
+                                    } else {
+                                        setActiveSideView('filters');
+                                        setIsSidebarOpen(true);
+                                    }
+                                }}
+                                className={`p-2.5 rounded-lg transition-all relative ${activeSideView === 'filters' && isSidebarOpen ? 'text-[var(--theme-text-primary)]' : 'text-[var(--theme-text-tertiary)] hover:text-[var(--theme-text-primary)]'}`}
+                                title="Smart Context (Ctrl+Shift+F)"
+                            >
+                                {activeSideView === 'filters' && isSidebarOpen && (
+                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-[var(--theme-primary)] rounded-r" />
+                                )}
+                                <GoogleIcon icon={UI_ICONS_MAP.filter} className="w-6 h-6" />
+                            </button>
                         </div>
 
                         {/* Sidebar Panel - Resizable */}
@@ -1303,7 +1382,7 @@ function Contextractor() {
                                     {/* Sidebar Header */}
                                     <div className="px-4 py-3 border-b border-[var(--theme-border)] flex items-center justify-between shrink-0">
                                         <span className="text-xs font-semibold text-[var(--theme-text-secondary)] uppercase tracking-wider">
-                                            {activeSideView === 'explorer' ? 'Explorer' : 'Statistics'}
+                                            {activeSideView === 'explorer' ? 'Explorer' : activeSideView === 'stats' ? 'Statistics' : 'Smart Context'}
                                         </span>
                                         <button
                                             onClick={() => setIsSidebarOpen(false)}
@@ -1460,8 +1539,32 @@ function Contextractor() {
                                                     </div>
                                                 </div>
                                             </div>
+                                        ) : activeSideView === 'filters' ? (
+                                            <SidebarFilterPanel
+                                                filters={activeSession?.filters || { presets: { source: true, documentation: false, config: false, noTests: true }, excludePatterns: [] }}
+                                                onTogglePreset={handleTogglePreset}
+                                                onAddPattern={handleAddPattern}
+                                                onRemovePattern={handleRemovePattern}
+                                                hiddenCount={rawFiles.length - files.length}
+                                            />
                                         ) : (
-                                            <StatsView files={files} stats={stats} />
+                                            <StatsView
+                                                files={files.filter(f => !f.isHidden)}
+                                                stats={{
+                                                    count: files.filter(f => !f.isHidden).length,
+                                                    lines: files.filter(f => !f.isHidden).reduce((acc, f) => acc + f.linesOfCode, 0),
+                                                    tokens: files.filter(f => !f.isHidden).reduce((acc, f) => acc + f.tokenCount, 0),
+                                                    tokenBudget: activeSession?.stats?.tokenBudget || 128000,
+                                                    selectedModelId: activeSession?.stats?.selectedModelId || 'gpt-4o'
+                                                }}
+                                                onUpdateBudget={(newBudget, newModelId) => {
+                                                    if (!activeSession) return;
+                                                    // updateSessionStats is a partial update
+                                                    const update: Partial<import('@/store/types').SessionStats> = { tokenBudget: newBudget };
+                                                    if (newModelId) update.selectedModelId = newModelId;
+                                                    updateSessionStats(activeSession.id, update);
+                                                }}
+                                            />
                                         )}
                                     </div>
 
@@ -1599,7 +1702,14 @@ function Contextractor() {
                                         )}
                                     </>
                                 ) : (
-                                    <StatsView files={files} stats={stats} />
+                                    <StatsView
+                                        files={files}
+                                        stats={stats}
+                                        onUpdateBudget={(newBudget) => {
+                                            if (!activeSession) return;
+                                            updateSessionStats(activeSession.id, { tokenBudget: newBudget });
+                                        }}
+                                    />
                                 )}
                             </div>
                         </aside>
@@ -1654,11 +1764,9 @@ function Contextractor() {
                                         </div>
 
                                         <button
-                                            type="button"
-                                            onClick={() => setViewLayout(prev => prev === 'single' ? 'split' : 'single')}
-                                            aria-pressed={viewLayout === 'split'}
+                                            onClick={() => setViewLayout(viewLayout === 'single' ? 'split' : 'single')}
                                             className={`
-                                        hidden md:inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors border
+                                        flex items-center justify-center px-4 h-10 rounded-full border text-xs font-medium transition-all
                                         ${viewLayout === 'split'
                                                     ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)]/10 text-[var(--theme-primary)]'
                                                     : 'border-[var(--theme-border)] text-[var(--theme-text-secondary)] hover:border-[var(--theme-text-tertiary)] hover:text-[var(--theme-text-primary)]'}
@@ -1666,6 +1774,8 @@ function Contextractor() {
                                         >
                                             {viewLayout === 'split' ? 'Split view' : 'Single view'}
                                         </button>
+
+
 
                                         <GoogleButton
                                             onClick={copyToClipboard}
@@ -1835,19 +1945,17 @@ function Contextractor() {
             </AnimatePresence>
 
             {/* Git File Selector Modal */}
-            <AnimatePresence>
-                {gitModalOpen && (
-                    <GitFileSelector
-                        isOpen={gitModalOpen}
-                        onClose={handleCloseGitModal}
-                        onImport={handleGitImport}
-                        onStartImport={handleStartImport}
-                        onOpenSettings={openSettingsTab}
-                        settings={settings}
-                        initialUrl={pastedGitUrl}
-                    />
-                )}
-            </AnimatePresence>
+            <GitFileSelector
+                isOpen={gitModalOpen || pastedGitUrl !== ''}
+                initialUrl={pastedGitUrl}
+                onClose={handleCloseGitModal}
+                onImport={handleGitImport}
+                onStartImport={handleStartImport}
+                onOpenSettings={openSettingsTab}
+                settings={settings}
+            />
+
+
 
             {/* Global Import Indicator */}
             <GlobalImportIndicator
@@ -1885,7 +1993,8 @@ function Contextractor() {
                     <SecurityWarningModal
                         isOpen={securityWarningOpen}
                         onClose={() => setSecurityWarningOpen(false)}
-                        onProceed={performCopy}
+                        onProceed={() => performCopy(false)}
+                        onRedact={() => performCopy(true)}
                         issues={securityIssues}
                     />
                 )}

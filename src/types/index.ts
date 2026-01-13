@@ -10,6 +10,7 @@ export interface FileData {
     characterCount: number;
     tokenCount: number;
     path: string;
+    isHidden?: boolean;
 }
 
 export interface TreeNode {

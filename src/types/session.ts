@@ -1,6 +1,8 @@
 // Session & Tab Types for Contextractor
 // Professional-grade session management inspired by VS Code & Adobe Acrobat
 
+import { SmartContextFilters, SessionStats } from '@/store/types';
+
 export interface Session {
     id: string;
     type: 'editor' | 'settings' | 'report-issue' | 'changelog';
@@ -14,6 +16,8 @@ export interface Session {
     isActive: boolean;
     isPinned: boolean;
     color?: string; // Optional accent color for the tab
+    filters?: SmartContextFilters;
+    stats?: SessionStats;
 }
 
 export interface ReportIssueData {
@@ -63,7 +67,7 @@ export type ViewModeType = 'list' | 'tree';
 export type CodeProcessingModeType = 'raw' | 'remove-comments' | 'minify' | 'signatures-only' | 'interfaces-only';
 
 // Tab actions
-export type TabAction = 
+export type TabAction =
     | { type: 'CREATE_SESSION'; payload?: { name?: string } }
     | { type: 'CLOSE_SESSION'; payload: { id: string } }
     | { type: 'CLOSE_OTHER_SESSIONS'; payload: { keepId: string } }

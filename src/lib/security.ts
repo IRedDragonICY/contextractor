@@ -38,6 +38,24 @@ const isWhitespaceHeavy = (line: string): boolean => {
     return whitespaceCount / line.length > MAX_WHITESPACE_RATIO;
 };
 
+export const COMMON_SECRET_PATTERNS = [
+    { name: 'AWS Access Key', pattern: /AKIA[0-9A-Z]{16}/g },
+    { name: 'AWS Secret Key', pattern: /[0-9a-zA-Z/+]{40}/g }, // Be careful with this one, might be too broad? Limited by context usually.
+    // Better AWS Secret: 
+    { name: 'AWS Secret Key (Context)', pattern: /(?:aws_secret_access_key|aws_session_token|secret_key|secret)[ \t]*[:=][ \t]*["']?([0-9a-zA-Z/+]{40})["']?/gi },
+
+    { name: 'Google API Key', pattern: /AIza[0-9A-Za-z\\-_]{35}/g },
+    { name: 'Stripe Publishable Key', pattern: /pk_(?:test|live)_[0-9a-zA-Z]{24}/g },
+    { name: 'Stripe Secret Key', pattern: /sk_(?:test|live)_[0-9a-zA-Z]{24}/g },
+    { name: 'OpenAI API Key', pattern: /sk-[a-zA-Z0-9]{48}/g },
+    { name: 'GitHub Token', pattern: /(?:ghp|gho|ghu|ghs|ghr)_[a-zA-Z0-9]{36}/g },
+    { name: 'RSA Private Key', pattern: /-----BEGIN RSA PRIVATE KEY-----/g },
+    { name: 'SSH Private Key', pattern: /-----BEGIN OPENSSH PRIVATE KEY-----/g },
+    { name: 'Generic Private Key', pattern: /-----BEGIN PRIVATE KEY-----/g },
+    { name: 'Facebook Access Token', pattern: /EAACEdEose0cBA[0-9A-Za-z]+/g },
+    { name: 'Slack Token', pattern: /xox[baprs]-([0-9a-zA-Z]{10,48})/g },
+];
+
 export const scanForSecrets = (files: FileData[], settings: SecuritySettings): SecurityIssue[] => {
     if (!settings.enablePreFlightCheck) return [];
 
@@ -49,6 +67,12 @@ export const scanForSecrets = (files: FileData[], settings: SecuritySettings): S
     );
 
     const contentRegexes = settings.blockedContentPatterns.map(p => new RegExp(p, 'g'));
+
+    // Common patterns
+    const commonPatterns = settings.enableCommonSecretsScanning
+        ? COMMON_SECRET_PATTERNS
+        : [];
+
     const entropyEnabled = settings.enableEntropyScanning;
     const entropyThreshold = settings.entropyThreshold ?? 4.5;
 
@@ -82,6 +106,7 @@ export const scanForSecrets = (files: FileData[], settings: SecuritySettings): S
             // Skip if line is too long (performance)
             if (line.length > MAX_LINE_LENGTH) continue;
 
+            // Custom patterns
             for (const regex of contentRegexes) {
                 regex.lastIndex = 0;
                 if (regex.test(line)) {
@@ -90,17 +115,37 @@ export const scanForSecrets = (files: FileData[], settings: SecuritySettings): S
                         fileName: file.name,
                         path: file.path,
                         type: 'content',
-                        match: regex.source, // Show the pattern that matched
+                        match: regex.source,
                         line: i + 1,
                     });
                     issuesForFile++;
-                    break; // avoid spamming issues for same line
+                    break;
+                }
+            }
+
+            // Common patterns
+            if (settings.enableCommonSecretsScanning) {
+                for (const { name, pattern } of commonPatterns) {
+                    pattern.lastIndex = 0;
+                    if (pattern.test(line)) {
+                        issues.push({
+                            fileId: file.id,
+                            fileName: file.name,
+                            path: file.path,
+                            type: 'content',
+                            match: `${name} detected`, // Don't show the secret itself in the match description for common patterns
+                            line: i + 1,
+                        });
+                        issuesForFile++;
+                        break;
+                    }
                 }
             }
 
             if (issuesForFile >= MAX_ISSUES_PER_FILE || !entropyEnabled) {
                 continue;
             }
+
 
             // Entropy-based scanning for secrets that don't match regexes
             if (isLikelyDataImage(line) || isWhitespaceHeavy(line)) {
@@ -130,4 +175,29 @@ export const scanForSecrets = (files: FileData[], settings: SecuritySettings): S
     }
 
     return issues;
+};
+
+export const redactSecrets = (content: string, settings: SecuritySettings): string => {
+    if (!content) return content;
+    let redacted = content;
+
+    const commonPatterns = settings.enableCommonSecretsScanning
+        ? COMMON_SECRET_PATTERNS
+        : [];
+
+    // Redact Common Patterns
+    for (const { pattern } of commonPatterns) {
+        // Reset lastIndex because we are doing global replace or multiple tests
+        // Actually for replace(regex, string), global flag matters.
+        // Our patterns have /g flag.
+        redacted = redacted.replace(pattern, 'REDACTED_SECRET');
+    }
+
+    // Redact Custom Patterns
+    const contentRegexes = settings.blockedContentPatterns.map(p => new RegExp(p, 'g'));
+    for (const regex of contentRegexes) {
+        redacted = redacted.replace(regex, 'REDACTED_CUSTOM_PATTERN');
+    }
+
+    return redacted;
 };

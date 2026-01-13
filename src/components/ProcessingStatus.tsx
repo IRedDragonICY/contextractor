@@ -1,10 +1,11 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, FileText, CheckCircle2 } from 'lucide-react';
-import { useProcessingStore } from '@/stores/processingStore';
+import { Loader2, FileText } from 'lucide-react';
+import { useSessionStore } from '@/store';
 
 export const ProcessingStatus = () => {
-    const { isProcessing, progress } = useProcessingStore();
+    const isProcessing = useSessionStore(s => s.isProcessing);
+    const progress = useSessionStore(s => s.processingProgress);
 
     if (!isProcessing || !progress) return null;
 

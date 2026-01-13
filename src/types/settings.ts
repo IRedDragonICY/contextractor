@@ -2,6 +2,7 @@ export interface SecuritySettings {
     enablePreFlightCheck: boolean;
     enableEntropyScanning: boolean;
     entropyThreshold: number;
+    enableCommonSecretsScanning: boolean;
     blockedFilePatterns: string[];
     blockedContentPatterns: string[];
 }
@@ -10,6 +11,7 @@ export interface FileFilterSettings {
     ignoredFolders: string[];
     ignoredExtensions: string[];
     sourceCodeExtensions: string[];
+    respectGitIgnore: boolean;
 }
 
 export interface AppSettings {
@@ -21,9 +23,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
     security: {
         enablePreFlightCheck: true,
         enableEntropyScanning: false,
+        enableCommonSecretsScanning: true,
         entropyThreshold: 4.5,
         blockedFilePatterns: [
-            '.env', '.env.*', '*.pem', '*.key', 'id_rsa', 'id_dsa', 
+            '.env', '.env.*', '*.pem', '*.key', 'id_rsa', 'id_dsa',
             'credentials.json', 'secrets.yaml', '*.p12', '*.pfx'
         ],
         blockedContentPatterns: [
@@ -34,13 +37,14 @@ export const DEFAULT_SETTINGS: AppSettings = {
         ]
     },
     filters: {
+        respectGitIgnore: true,
         ignoredFolders: [
-            'node_modules', '.git', '.next', 'dist', 'build', 'coverage', 
+            'node_modules', '.git', '.next', 'dist', 'build', 'coverage',
             '.idea', '.vscode', '__pycache__', 'venv', 'bin', 'obj'
         ],
         ignoredExtensions: [
-            'lock', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'pdf', 
-            'zip', 'tar', 'gz', '7z', 'rar', 'exe', 'dll', 'so', 'dylib', 
+            'lock', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'pdf',
+            'zip', 'tar', 'gz', '7z', 'rar', 'exe', 'dll', 'so', 'dylib',
             'class', 'jar', 'war', 'ear', 'sqlite', 'db'
         ],
         sourceCodeExtensions: [

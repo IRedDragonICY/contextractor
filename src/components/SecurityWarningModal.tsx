@@ -8,11 +8,12 @@ import { SecurityIssue } from '@/lib/security';
 interface SecurityWarningModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onProceed: () => void;
+    onProceed: () => void; // Copy Anyway
+    onRedact: () => void; // Redact & Copy
     issues: SecurityIssue[];
 }
 
-export const SecurityWarningModal = ({ isOpen, onClose, onProceed, issues }: SecurityWarningModalProps) => {
+export const SecurityWarningModal = ({ isOpen, onClose, onProceed, onRedact, issues }: SecurityWarningModalProps) => {
     if (!isOpen) return null;
 
     return (
@@ -34,11 +35,11 @@ export const SecurityWarningModal = ({ isOpen, onClose, onProceed, issues }: Sec
                     <div className="w-16 h-16 rounded-full bg-[var(--theme-error)]/10 flex items-center justify-center mb-4">
                         <GoogleIcon icon={UI_ICONS_MAP.warning} className="w-8 h-8 text-[var(--theme-error)]" />
                     </div>
-                    
+
                     <h3 className="text-xl font-medium text-[var(--theme-text-primary)] mb-2">
                         Security Warning
                     </h3>
-                    
+
                     <p className="text-sm text-[var(--theme-text-secondary)] mb-6">
                         Potential secrets or sensitive files detected. Are you sure you want to copy this content?
                     </p>
@@ -52,7 +53,7 @@ export const SecurityWarningModal = ({ isOpen, onClose, onProceed, issues }: Sec
                                         {issue.fileName}
                                     </p>
                                     <p className="text-xs text-[var(--theme-text-tertiary)] font-mono break-all">
-                                        {issue.type === 'filename' 
+                                        {issue.type === 'filename'
                                             ? `Blocked filename pattern: ${issue.match}`
                                             : `Sensitive content at line ${issue.line}: ${issue.match.substring(0, 20)}...`
                                         }
@@ -66,9 +67,16 @@ export const SecurityWarningModal = ({ isOpen, onClose, onProceed, issues }: Sec
                         <GoogleButton variant="tonal" className="flex-1" onClick={onClose}>
                             Cancel
                         </GoogleButton>
-                        <GoogleButton 
-                            variant="filled" 
-                            className="flex-1 bg-[var(--theme-error)] text-white hover:brightness-90 border-none" 
+                        <GoogleButton
+                            variant="filled"
+                            className="flex-1 bg-[var(--theme-primary)] text-white hover:brightness-110 border-none"
+                            onClick={onRedact}
+                        >
+                            Redact & Copy
+                        </GoogleButton>
+                        <GoogleButton
+                            variant="text"
+                            className="flex-1 text-[var(--theme-error)] hover:bg-[var(--theme-error)]/10"
                             onClick={onProceed}
                         >
                             Copy Anyway

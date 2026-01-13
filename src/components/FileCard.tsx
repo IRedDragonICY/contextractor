@@ -28,6 +28,7 @@ export const FileCard = React.memo(({
                     ? 'bg-[var(--theme-primary)]/10 border-[var(--theme-primary)] text-[var(--theme-primary)] cursor-pointer'
                     : 'bg-[var(--theme-surface)] border-[var(--theme-border)] hover:bg-[var(--theme-surface-hover)] hover:border-[var(--theme-text-tertiary)] cursor-pointer'
             }
+            ${file.isHidden ? 'opacity-50 grayscale' : ''}
         `}
             onClick={onClick ? (e) => onClick(file.id, e) : undefined}
             aria-pressed={isSelected}

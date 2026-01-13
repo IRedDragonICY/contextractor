@@ -23,6 +23,7 @@ const grammars = [
     name: lang,
     filename: `tree-sitter-${lang}.wasm`,
     sources: [
+      `https://unpkg.com/tree-sitter-wasms/out/tree-sitter-${lang}.wasm`,
       `${LANGUAGE_CDN_BASE}/tree-sitter-${lang}.wasm`,
       `${FALLBACK_GITHUB_BASE}/main/tree-sitter-${lang}.wasm`,
       `${FALLBACK_GITHUB_BASE}/master/tree-sitter-${lang}.wasm`,

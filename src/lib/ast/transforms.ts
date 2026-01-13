@@ -1,7 +1,7 @@
 import Parser from 'web-tree-sitter';
 import TreeSitterService, { type LanguageKey } from './tree-sitter-service';
 
-export type AstTransformMode = 'remove-comments' | 'signatures-only' | 'interfaces-only';
+export type AstTransformMode = 'remove-comments' | 'minify' | 'signatures-only' | 'interfaces-only';
 
 interface Replacement {
   start: number;
@@ -10,8 +10,16 @@ interface Replacement {
 }
 
 const TS_LIKE_LANGUAGES: LanguageKey[] = ['typescript', 'tsx', 'javascript'];
+const PYTHON_LIKE_LANGUAGES: LanguageKey[] = ['python'];
+const RUST_LIKE_LANGUAGES: LanguageKey[] = ['rust'];
 
 const TS_COMMENT_QUERY = '(comment) @comment';
+const PYTHON_COMMENT_QUERY = '(comment) @comment';
+const RUST_COMMENT_QUERY = [
+  '(line_comment) @comment',
+  '(block_comment) @comment'
+].join('\n');
+
 const TS_BODY_QUERY = `
 [
   (function_declaration body: (statement_block) @body)
@@ -109,7 +117,7 @@ async function transformTypeScriptLike(
   if (!tree) return null;
 
   try {
-    if (mode === 'remove-comments') {
+    if (mode === 'remove-comments' || mode === 'minify') {
       const query = getCachedQuery(language, 'ts:comments', TS_COMMENT_QUERY);
       const captures = query.captures(tree.rootNode);
       const replacements = captures
@@ -153,6 +161,67 @@ async function transformTypeScriptLike(
   return null;
 }
 
+async function transformPython(
+  source: string,
+  mode: AstTransformMode,
+  service: TreeSitterService
+): Promise<string | null> {
+  const language = await service.getLanguage('python');
+  if (!language) return null;
+
+  const tree = await service.parse(source, 'python');
+  if (!tree) return null;
+
+  try {
+    if (mode === 'remove-comments' || mode === 'minify') {
+      const query = getCachedQuery(language, 'py:comments', PYTHON_COMMENT_QUERY);
+      const captures = query.captures(tree.rootNode);
+      const replacements = captures
+        .filter(({ name }) => name === 'comment')
+        .map(({ node }) => ({ start: node.startIndex, end: node.endIndex, text: '' }));
+
+      return applyReplacements(source, replacements).code;
+    }
+    // Signatures only for python is harder due to indentation, skipping for now or simple pass
+  } catch (error) {
+    console.warn(`Tree-sitter transform failed for python (${mode})`, error);
+    return null;
+  } finally {
+    tree.delete();
+  }
+  return null;
+}
+
+async function transformRust(
+  source: string,
+  mode: AstTransformMode,
+  service: TreeSitterService
+): Promise<string | null> {
+  const language = await service.getLanguage('rust');
+  if (!language) return null;
+
+  const tree = await service.parse(source, 'rust');
+  if (!tree) return null;
+
+  try {
+    if (mode === 'remove-comments' || mode === 'minify') {
+      const query = getCachedQuery(language, 'rs:comments', RUST_COMMENT_QUERY);
+      const captures = query.captures(tree.rootNode);
+      const replacements = captures
+        .filter(({ name }) => name === 'comment')
+        .map(({ node }) => ({ start: node.startIndex, end: node.endIndex, text: '' }));
+
+      return applyReplacements(source, replacements).code;
+    }
+  } catch (error) {
+    console.warn(`Tree-sitter transform failed for rust (${mode})`, error);
+    return null;
+  } finally {
+    tree.delete();
+  }
+  return null;
+}
+
 export interface TransformRequest {
   source: string;
   language: LanguageKey;
@@ -168,6 +237,12 @@ export async function transformWithAST({
 }: TransformRequest): Promise<string | null> {
   if (TS_LIKE_LANGUAGES.includes(language)) {
     return transformTypeScriptLike(source, language, mode, service);
+  }
+  if (PYTHON_LIKE_LANGUAGES.includes(language)) {
+    return transformPython(source, mode, service);
+  }
+  if (RUST_LIKE_LANGUAGES.includes(language)) {
+    return transformRust(source, mode, service);
   }
 
   return null;
